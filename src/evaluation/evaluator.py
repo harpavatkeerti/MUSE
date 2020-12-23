@@ -16,7 +16,7 @@ from . import get_word_translation_accuracy
 from . import load_europarl_data, get_sent_translation_accuracy
 from ..dico_builder import get_candidates, build_dictionary
 from src.utils import get_idf
-
+import torch
 
 logger = getLogger()
 
@@ -214,7 +214,7 @@ class Evaluator(object):
         """
         self.monolingual_wordsim(to_log)
         self.crosslingual_wordsim(to_log)
-        self.word_translation(to_log)
+        # self.word_translation(to_log)
         self.sent_translation(to_log)
         self.dist_mean_cosine(to_log)
 
@@ -229,14 +229,16 @@ class Evaluator(object):
         self.discriminator.eval()
 
         for i in range(0, self.src_emb.num_embeddings, bs):
+          with torch.no_grad():
             emb = Variable(self.src_emb.weight[i:i + bs].data, volatile=True)
-            preds = self.discriminator(self.mapping(emb))
-            src_preds.extend(preds.data.cpu().tolist())
+          preds = self.discriminator(self.mapping(emb))
+          src_preds.extend(preds.data.cpu().tolist())
 
         for i in range(0, self.tgt_emb.num_embeddings, bs):
+          with torch.no_grad():
             emb = Variable(self.tgt_emb.weight[i:i + bs].data, volatile=True)
-            preds = self.discriminator(emb)
-            tgt_preds.extend(preds.data.cpu().tolist())
+          preds = self.discriminator(emb)
+          tgt_preds.extend(preds.data.cpu().tolist())
 
         src_pred = np.mean(src_preds)
         tgt_pred = np.mean(tgt_preds)
